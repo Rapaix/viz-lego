@@ -1,4 +1,4 @@
-# HandRocognition
+# HandRecognition
 
 Prototipo do reconhecimento de mãos
 para rodar:
