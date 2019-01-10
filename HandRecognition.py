@@ -1,8 +1,8 @@
 import cv2 as cv
 import numpy as np
 
-cap =  cv.VideoCapture(0)
-
+cap =  cv.VideoCapture('videoTeste.webm')
+colors = np.array([])
 
 def makeHandMask(img):
     gray= cv.cvtColor(img, cv.COLOR_BGR2GRAY)
@@ -14,8 +14,11 @@ def makeHandMask(img):
 def findHand(img):
     _, cnts, hierarchy = cv.findContours(img, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
     c = max(cnts, key=lambda x: cv.contourArea(x))
+    epsilon = 0.0005 * cv.arcLength(c, True)
+    approx = cv.approxPolyDP(c, epsilon, True)
     hull = cv.convexHull(c)
     moments = cv.moments(c)
+
     if moments != 0:
         cx = int(moments['m10']/moments['m00'])
         cy = int(moments['m01']/moments['m00'])
@@ -38,22 +41,24 @@ def findHand(img):
         dist = cv.pointPolygonTest(c, center, True)
         cv.line(frame, start,end,[0,255,255],2)
         cv.circle(frame, far, 5, [255,255,0],-1)
-        colors = hsv[center]
-        upper = np.array([colors[0] + 10, colors[1] + 10, colors[2] + 40])
-        lower = np.array([colors[0] - 10, colors[1] - 10, colors[2] - 40])
-        print(lower, colors, upper)
+
+        if center[0] < hsv.shape[0]:
+            colors = hsv[center]
+            upper = np.array([colors[0] + 10, colors[1] + 10, colors[2] + 40])
+            lower = np.array([colors[0] - 10, colors[1] - 10, colors[2] - 40])
+
 
 
 while(cap.isOpened()):
 
     ret, frame = cap.read()
-    frame = cv.flip(frame, 1)
+    frame = cv.flip(frame, -1)
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-
     img = makeHandMask(frame)
     findHand(img)
     cv.imshow('img', img)
     cv.imshow('frama', frame)
+
     k = cv.waitKey(10)# Esc
     if k == 27:
         break
