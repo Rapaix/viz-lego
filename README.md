@@ -4,5 +4,8 @@ Prototipo do reconhecimento de mãos
 para rodar:
 
 *python HandRecognition.py -v 'Arquivo de video*
-ou 
-*python HandRecognition.py* Para iniciar a camêra
+
+ou
+Para iniciar a camêra
+
+*python HandRecognition.py* 
