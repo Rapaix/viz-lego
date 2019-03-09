@@ -33,3 +33,20 @@ python recog_utils.py -v VIDEO_PATH && python handcolorextraction.py -v VIDEO_PA
 set VIDEO_PATH=videos\videoTeste2.webm
 python recog_utils.py -v %VIDEO_PATH% && python handcolorextraction.py -v %VIDEO_PATH% && python handdetection.py -v %VIDEO_PATH%
 ```
+
+#Scripts de reconhecimento dos legos:
+
+O arquivo find_color_with_lego.py roda em video, A peça que for colocada na area esquerda do video faz a seleção de cores no grafico de barras(em teoria)
+```bash
+python find_color_with_lego.py
+```
+
+o arquivo findColorsLegoTeste.py roda em video, a seleção de cores é feita atrasves do teclado.
+```bash
+python findColorsLegoTeste.py
+```
+o arquivo findColorsLego.py serve apenas para testar funcionalidades, mão roda em video.
+```bash
+python findColorsLego.py
+```
+
