@@ -4,9 +4,6 @@ import json
 from operator import itemgetter
 
 log = []
-log_dict = {}
-log_cx = []
-arr = np.array([])
 color_log = []
 
 #RGB das cores
@@ -47,7 +44,7 @@ red_lower = np.array([169, 100, 0], np.uint8)
 red_upper = np.array([180, 255, 255], np.uint8)
 
 
-cap = cv.VideoCapture("videos/videoLego1.webm")
+cap = cv.VideoCapture(1)
 
 #funcao que encontra a peça de lego e dar destaque
 def boundingColor(maskColor, color, cor, id):
@@ -58,7 +55,6 @@ def boundingColor(maskColor, color, cor, id):
 
     for c in cnts:
         area = cv.contourArea(c)
-
         if area > 300:
 
             x, y, w, h = cv.boundingRect(c)
@@ -67,15 +63,14 @@ def boundingColor(maskColor, color, cor, id):
             box = np.int0(box)
             M = cv.moments(c)
             cX = int(M["m10"] / M["m00"])
-            if (id in color_log):
-                pass
-            else:
-                log.append({"Height": h, "color": cor, "center": cX})
-                log_dict["altura","color","center"]={h, cor,cX}
+            if cX >=100:
+                if (id in color_log):
+                    pass
+                else:
+                    log.append({"Height": h, "color": cor, "center": cX})
 
             cv.rectangle(copy, (x, y), (x + w, y + h), (color), 2)
             cv.drawContours(blank, [box], 0, (color), 2)
-
     color_log.append(id)
 
 
@@ -123,12 +118,7 @@ while (cap.isOpened()):
     hsv = cv.cvtColor(blur, cv.COLOR_BGR2HSV)
     roi_image = hsv[29:76, 145:217]
 
-
     (y, x, _) = hsv.shape
-
-    cv.imshow("roi", roi_image)
-
-    blank = np.zeros(hsv.shape)
 
     #Gera as mascaras de cada cor
     red = cv.inRange(hsv, red_lower, red_upper)
@@ -139,25 +129,21 @@ while (cap.isOpened()):
     blue = cv.inRange(hsv, blue_lower, blue_upper)
     purple = cv.inRange(hsv, purple_lower, purple_upper)
     magenta = cv.inRange(hsv, magenta_lower, magenta_upper)
-    #juntei as duas mascaras de cor vermelha
+    # juntei as duas mascaras de cor vermelha
     sumRed = red + magenta
-
 
     # soma de todas as ranges para uma imagem
     maskTotal = red + yellow + green + cyan + blue + purple + magenta + orange
     teste = maskTotal[0:300, 0:100]
-    #comom = draw(teste)
+    cv.line(copy, (100,0), (100,300), (0,100,255), 1)
 
-    colors = cv.bitwise_and(copy, copy, mask=maskTotal)
+    comom = draw(teste)
 
-    #roi = hsv[y:y + h, x:x + w]
-
-    #draw(arr)
-
+    #colors = cv.bitwise_and(copy, copy, mask=maskTotal)
 
     #comom = np.bincount(np.ravel(roi[:, :, 0])).argmax()
 
-    comom = np.random.randint(180) # Testa se reconhece as cores
+    #comom = np.random.randint(180) # Testa se reconhece as cores
 
 
     if comom == None: # Para não quebrar a execução se não tiver nada
@@ -177,8 +163,8 @@ while (cap.isOpened()):
     elif comom >= 126 and comom <= 165:
         boundingColor(purple, purpleColor, "purple",7)
 
-    newlog = sorted(log, key=itemgetter('center'))
-    print(json.dumps(newlog, indent=4))
+    new_log = sorted(log, key=itemgetter('center'))
+    print(json.dumps(new_log, indent=4))
     print("*"*5)
 
     k = cv.waitKey(25)
@@ -186,12 +172,11 @@ while (cap.isOpened()):
         break
 
 
-    cv.imshow("img", blank)
+
     cv.imshow("copy", copy)
 
 
 print("tamanho", len(log))
-#print(len(log))
 
 cap.release()
 
