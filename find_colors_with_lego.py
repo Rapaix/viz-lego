@@ -1,12 +1,13 @@
 import cv2 as cv
 import numpy as np
 import json
+from operator import itemgetter
 
 log = []
-log_dict = {"y":[],"color":[]}
+log_dict = {}
 log_cx = []
 arr = np.array([])
-color_log = np.array([])
+color_log = []
 
 #RGB das cores
 
@@ -46,12 +47,12 @@ red_lower = np.array([169, 100, 0], np.uint8)
 red_upper = np.array([180, 255, 255], np.uint8)
 
 
-cap = cv.VideoCapture(0)
+cap = cv.VideoCapture("videos/videoLego1.webm")
 
 #funcao que encontra a peça de lego e dar destaque
-def boundingColor(maskColor, color, cor):
+def boundingColor(maskColor, color, cor, id):
 
-    print(np.isin(color_log, cor))
+
     (cnts, hierarchy) = cv.findContours(maskColor, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
     cnts = sorted(cnts, key=cv.contourArea, reverse=True)[:10]
 
@@ -66,17 +67,16 @@ def boundingColor(maskColor, color, cor):
             box = np.int0(box)
             M = cv.moments(c)
             cX = int(M["m10"] / M["m00"])
-            cY = int(M["m01"] / M["m00"])
-            if cX in log_cx:
+            if (id in color_log):
                 pass
             else:
-                log.append({"x_Axis": x, "y_Axis": y, "width": w, "Height": h, "color": cor})
-                #log_dict["y"] =
-            log_cx.append(cX)
-            #print(log_cx)
+                log.append({"Height": h, "color": cor, "center": cX})
+                log_dict["altura","color","center"]={h, cor,cX}
+
             cv.rectangle(copy, (x, y), (x + w, y + h), (color), 2)
             cv.drawContours(blank, [box], 0, (color), 2)
-    print(cor)
+
+    color_log.append(id)
 
 
 #funcao que encontra contorno da peça e retorna as coordenadas do contorno
@@ -146,7 +146,7 @@ while (cap.isOpened()):
     # soma de todas as ranges para uma imagem
     maskTotal = red + yellow + green + cyan + blue + purple + magenta + orange
     teste = maskTotal[0:300, 0:100]
-    comom = draw(teste)
+    #comom = draw(teste)
 
     colors = cv.bitwise_and(copy, copy, mask=maskTotal)
 
@@ -157,35 +157,29 @@ while (cap.isOpened()):
 
     #comom = np.bincount(np.ravel(roi[:, :, 0])).argmax()
 
-    #comom = np.random.randint(180) # Testa se reconhece as cores
+    comom = np.random.randint(180) # Testa se reconhece as cores
 
 
     if comom == None: # Para não quebrar a execução se não tiver nada
         pass
     elif comom >= 0 and comom <= 10:
-        boundingColor(sumRed, redColor,"red")
-        color_log = "cor"
+        boundingColor(sumRed, redColor,"red",1)
     elif comom >= 10 and comom <= 20:
-        boundingColor(orange, orangeColor, "orange")
-        color_log = "cor"
+        boundingColor(orange, orangeColor, "orange",2)
     elif comom >= 20 and comom <= 35:
-        boundingColor(yellow, yellowColor, "yellow")
-        color_log = "cor"
+        boundingColor(yellow, yellowColor, "yellow",3)
     elif comom >= 36 and comom <= 90:
-        boundingColor(green, greenColor, "green")
-        color_log = "cor"
+        boundingColor(green, greenColor, "green",4)
     elif comom >= 75 and comom <= 95:
-        boundingColor(cyan, cyanColor, "cyan")
-        color_log = "cor"
+        boundingColor(cyan, cyanColor, "cyan",5)
     elif comom >= 84 and comom <= 130:
-        boundingColor(blue, blueColor, "blue")
-        color_log = "cor"
+        boundingColor(blue, blueColor, "blue",6)
     elif comom >= 126 and comom <= 165:
-        boundingColor(purple, purpleColor, "purple")
-        color_log = "cor"
+        boundingColor(purple, purpleColor, "purple",7)
 
-    #elif comom >= 169 and comom <= 180:
-     #   boundingColor(magenta, magentaColor, "magenta")
+    newlog = sorted(log, key=itemgetter('center'))
+    print(json.dumps(newlog, indent=4))
+    print("*"*5)
 
     k = cv.waitKey(25)
     if k == 27:
@@ -195,8 +189,6 @@ while (cap.isOpened()):
     cv.imshow("img", blank)
     cv.imshow("copy", copy)
 
-print(json.dumps(log, indent=4))
-    #cv.imshow("roi", roi)
 
 print("tamanho", len(log))
 #print(len(log))
@@ -204,3 +196,4 @@ print("tamanho", len(log))
 cap.release()
 
 cv.destroyAllWindows()
+
