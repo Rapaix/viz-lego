@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 import json
+import visdom_barra as visdom_bar
 from operator import itemgetter
 
 log = []
@@ -8,8 +9,8 @@ log_dict = {}
 log_cx = []
 arr = np.array([])
 color_log = []
-
-#RGB das cores
+log_anterior = {}
+# RGB das cores
 
 redColor = (0, 0, 255)
 yellowColor = (0, 255, 255)
@@ -25,8 +26,8 @@ magentaColor = (255, 0, 255)
 magenta_lower = np.array([0, 100, 0], np.uint8)
 magenta_upper = np.array([10, 255, 255], np.uint8)
 
-orange_lower = np.array([10,100,0], np.uint8)
-orange_upper = np.array([20,255,255], np.uint8)
+orange_lower = np.array([10, 100, 0], np.uint8)
+orange_upper = np.array([20, 255, 255], np.uint8)
 
 yellow_lower = np.array([20, 60, 100], np.uint8)
 yellow_upper = np.array([35, 255, 255], np.uint8)
@@ -46,13 +47,11 @@ purple_upper = np.array([165, 255, 255], np.uint8)
 red_lower = np.array([169, 100, 0], np.uint8)
 red_upper = np.array([180, 255, 255], np.uint8)
 
-
 cap = cv.VideoCapture("videos/videoLego1.webm")
 
-#funcao que encontra a peça de lego e dar destaque
+
+# funcao que encontra a peça de lego e dar destaque
 def boundingColor(maskColor, color, cor, id):
-
-
     (cnts, hierarchy) = cv.findContours(maskColor, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
     cnts = sorted(cnts, key=cv.contourArea, reverse=True)[:10]
 
@@ -71,7 +70,7 @@ def boundingColor(maskColor, color, cor, id):
                 pass
             else:
                 log.append({"Height": h, "color": cor, "center": cX})
-                log_dict["altura","color","center"]={h, cor,cX}
+                log_dict["altura", "color", "center"] = {h, cor, cX}
 
             cv.rectangle(copy, (x, y), (x + w, y + h), (color), 2)
             cv.drawContours(blank, [box], 0, (color), 2)
@@ -79,28 +78,26 @@ def boundingColor(maskColor, color, cor, id):
     color_log.append(id)
 
 
-#funcao que encontra contorno da peça e retorna as coordenadas do contorno
+# funcao que encontra contorno da peça e retorna as coordenadas do contorno
 def draw(image):
+    (cnts, _) = cv.findContours(image, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+    for c in cnts:
+        area = cv.contourArea(c)
+        epsilon = 0.1 * cv.arcLength(c, True)
+        approx = cv.approxPolyDP(c, epsilon, True)
+        if len(approx) == 4:
+            if area > 300:
+                x, y, w, h = cv.boundingRect(c)
+                # usar no  ambiente de interação(pegar um Roi e ) faz o draw nele para retorna um roi para verficar
 
-        (cnts, _) = cv.findContours(image, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-        for c in cnts:
-            area = cv.contourArea(c)
-            epsilon = 0.1*cv.arcLength(c,True)
-            approx = cv.approxPolyDP(c, epsilon, True)
-            if len(approx) == 4:
-                if area > 300:
+                img_roi = hsv[y:y + h, x:x + w]
+                cv.imshow("roi", img_roi)
+                # retorna o valor mais recorrente da camada H
+                commom = np.bincount(np.ravel(img_roi[:, :, 0])).argmax()
+                print("commo", commom)
+                cv.rectangle(copy, (x, y), (x + w, y + h), (255, 255, 255), 1)
 
-                    x, y, w, h = cv.boundingRect(c)
-                    # usar no  ambiente de interação(pegar um Roi e ) faz o draw nele para retorna um roi para verficar
-
-                    img_roi = hsv[y:y + h, x:x + w]
-                    cv.imshow("roi", img_roi)
-                    #retorna o valor mais recorrente da camada H
-                    commom = np.bincount(np.ravel(img_roi[:, :, 0])).argmax()
-                    print("commo",commom)
-                    cv.rectangle(copy, (x, y), (x + w, y + h), (255, 255, 255), 1)
-
-                    return commom
+                return commom
 
 
 # funcao que ajusta o gamma da cena
@@ -110,7 +107,6 @@ def ajusteGamma(image, gamma=0.5):
                       for i in np.arange(0, 256)]).astype("uint8")
 
     return cv.LUT(image, table)
-
 
 
 while (cap.isOpened()):
@@ -123,14 +119,13 @@ while (cap.isOpened()):
     hsv = cv.cvtColor(blur, cv.COLOR_BGR2HSV)
     roi_image = hsv[29:76, 145:217]
 
-
     (y, x, _) = hsv.shape
 
     cv.imshow("roi", roi_image)
 
     blank = np.zeros(hsv.shape)
 
-    #Gera as mascaras de cada cor
+    # Gera as mascaras de cada cor
     red = cv.inRange(hsv, red_lower, red_upper)
     orange = cv.inRange(hsv, orange_lower, orange_upper)
     yellow = cv.inRange(hsv, yellow_lower, yellow_upper)
@@ -139,61 +134,67 @@ while (cap.isOpened()):
     blue = cv.inRange(hsv, blue_lower, blue_upper)
     purple = cv.inRange(hsv, purple_lower, purple_upper)
     magenta = cv.inRange(hsv, magenta_lower, magenta_upper)
-    #juntei as duas mascaras de cor vermelha
+    # juntei as duas mascaras de cor vermelha
     sumRed = red + magenta
-
 
     # soma de todas as ranges para uma imagem
     maskTotal = red + yellow + green + cyan + blue + purple + magenta + orange
     teste = maskTotal[0:300, 0:100]
-    #comom = draw(teste)
+    # comom = draw(teste)
 
     colors = cv.bitwise_and(copy, copy, mask=maskTotal)
 
-    #roi = hsv[y:y + h, x:x + w]
+    # roi = hsv[y:y + h, x:x + w]
 
-    #draw(arr)
+    # draw(arr)
 
+    # comom = np.bincount(np.ravel(roi[:, :, 0])).argmax()
 
-    #comom = np.bincount(np.ravel(roi[:, :, 0])).argmax()
+    comom = np.random.randint(180)  # Testa se reconhece as cores
 
-    comom = np.random.randint(180) # Testa se reconhece as cores
-
-
-    if comom == None: # Para não quebrar a execução se não tiver nada
+    if comom == None:  # Para não quebrar a execução se não tiver nada
         pass
     elif comom >= 0 and comom <= 10:
-        boundingColor(sumRed, redColor,"red",1)
+        boundingColor(sumRed, redColor, "red", 1)
     elif comom >= 10 and comom <= 20:
-        boundingColor(orange, orangeColor, "orange",2)
+        boundingColor(orange, orangeColor, "orange", 2)
     elif comom >= 20 and comom <= 35:
-        boundingColor(yellow, yellowColor, "yellow",3)
+        boundingColor(yellow, yellowColor, "yellow", 3)
     elif comom >= 36 and comom <= 90:
-        boundingColor(green, greenColor, "green",4)
+        boundingColor(green, greenColor, "green", 4)
     elif comom >= 75 and comom <= 95:
-        boundingColor(cyan, cyanColor, "cyan",5)
+        boundingColor(cyan, cyanColor, "cyan", 5)
     elif comom >= 84 and comom <= 130:
-        boundingColor(blue, blueColor, "blue",6)
+        boundingColor(blue, blueColor, "blue", 6)
     elif comom >= 126 and comom <= 165:
-        boundingColor(purple, purpleColor, "purple",7)
+        boundingColor(purple, purpleColor, "purple", 7)
+
+
 
     newlog = sorted(log, key=itemgetter('center'))
+
     print(json.dumps(newlog, indent=4))
-    print("*"*5)
+    print("*" * 5)
+
+
+
 
     k = cv.waitKey(25)
     if k == 27:
         break
 
 
-    cv.imshow("img", blank)
+
+    # cv.imshow("img", blank)
     cv.imshow("copy", copy)
 
+    if newlog != log_anterior:
+        log_anterior = newlog
+        visdom_bar.gerar_barras(newlog)
 
 print("tamanho", len(log))
-#print(len(log))
+# print(len(log))
 
 cap.release()
 
 cv.destroyAllWindows()
-
